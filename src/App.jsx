@@ -140,10 +140,10 @@ function AppContent() {
   // Use a ref to access the map instance safely
   const mapRef = useRef(null);
 
-  const satelliteUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  const satelliteUrl = 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}';
   const streetUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   const attribution = isSatellite
-    ? 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    ? '&copy; Google Maps'
     : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   const handleLocateMe = () => {
@@ -166,7 +166,7 @@ function AppContent() {
         <TileLayer
           url={isSatellite ? satelliteUrl : streetUrl}
           attribution={attribution}
-          maxZoom={19}
+          maxZoom={21}
         />
         <SearchField />
         <MapEvents setLat={setLat} setLng={setLng} setZoom={setZoom} />
