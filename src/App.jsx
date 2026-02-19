@@ -30,17 +30,42 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [measurement, setMeasurement] = useState(null); // State for measurement result
 
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     if (map.current) return; // initialize map only once
 
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/satellite-streets-v12',
-      center: [lng, lat],
-      zoom: zoom,
-      maxZoom: 22,
-      projection: 'globe' // Display the map as a 3D globe
-    });
+    // Check for valid token
+    if (!mapboxgl.accessToken || mapboxgl.accessToken === 'pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJjbHZ6aHZ5ZW0wMDJ5MmpvM3Z5aG55Z2hlIn0.ABC') {
+      setError("Mapbox Access Token is missing or invalid. Please set VITE_MAPBOX_TOKEN in your .env file or Vercel Environment Variables.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      map.current = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/satellite-streets-v12',
+        center: [lng, lat],
+        zoom: zoom,
+        maxZoom: 22,
+        projection: 'globe' // Display the map as a 3D globe
+      });
+
+      map.current.on('error', (e) => {
+        console.error("Mapbox Error:", e);
+        if (e.error && e.error.message) {
+          // Suppress common 401s if we already know token might be bad, but show others
+          if (!error) setError(`Map Error: ${e.error.message}`);
+        }
+      });
+
+    } catch (err) {
+      console.error("Map Initialization Error:", err);
+      setError(`Failed to initialize map: ${err.message}`);
+      setLoading(false);
+      return;
+    }
 
     map.current.on('style.load', () => {
       // Add 3D terrain
@@ -168,6 +193,27 @@ export default function App() {
       {measurement && (
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 bg-black/80 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 shadow-xl">
           <span className="text-emerald-400 font-mono font-bold tracking-wider">{measurement}</span>
+        </div>
+      )}
+
+      {/* Error Overlay */}
+      {error && (
+        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 p-8">
+          <div className="text-center max-w-lg">
+            <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4 border border-red-500/50">
+              <span className="text-3xl">⚠️</span>
+            </div>
+            <h2 className="text-2xl font-bold text-red-500 mb-2">Satellite Uplink Failed</h2>
+            <p className="text-gray-300 mb-6">{error}</p>
+            <div className="bg-gray-800/50 p-4 rounded-lg text-left text-xs font-mono text-gray-400 border border-gray-700">
+              <p>Troubleshooting:</p>
+              <ul className="list-disc ml-4 mt-2 space-y-1">
+                <li>Verify VITE_MAPBOX_TOKEN is set in Vercel.</li>
+                <li>Check browser console for details (F12).</li>
+                <li>Ensure token has correct scopes.</li>
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
