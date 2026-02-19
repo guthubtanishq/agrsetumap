@@ -26,7 +26,8 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  overflow: hidden; /* Prevent scrolling on map view */
+  overflow: hidden;
+  /* Prevent scrolling on map view */
 }
 
 #root {
@@ -34,33 +35,40 @@ body {
   height: 100vh;
 }
 
-/* Mapbox specific overrides for dark theme */
-.mapboxgl-ctrl-geocoder {
-    background-color: var(--color-glass) !important;
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--color-glass-border);
-    color: white !important;
-    min-width: 300px;
+/* Leaflet Geosearch Customization */
+.leaflet-control-geosearch form {
+  background: rgba(30, 30, 30, 0.8) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  border-radius: 8px;
+  padding: 2px;
 }
 
-.mapboxgl-ctrl-geocoder--input {
-    color: white !important;
+.leaflet-control-geosearch input.glass {
+  color: white !important;
+  background: transparent !important;
 }
 
-.mapboxgl-ctrl-geocoder .mapboxgl-ctrl-geocoder--icon-search {
-    fill: white !important;
+.leaflet-control-geosearch .results {
+  background: rgba(30, 30, 30, 0.9) !important;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.mapboxgl-ctrl-geocoder .suggestions {
-    background-color: #1a1a1a !important;
-    border: 1px solid var(--color-glass-border);
+.leaflet-control-geosearch .results>* {
+  background: transparent !important;
+  color: white !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.mapboxgl-ctrl-geocoder .suggestions > li > a {
-    color: white !important;
+.leaflet-control-geosearch .results>.active,
+.leaflet-control-geosearch .results> :hover {
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
-.mapboxgl-ctrl-geocoder .suggestions > .active > a,
-.mapboxgl-ctrl-geocoder .suggestions > li > a:hover {
-    background-color: #333 !important;
+/* Hide defaults */
+.leaflet-bar {
+  border: none !important;
+  box-shadow: none !important;
 }
