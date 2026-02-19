@@ -60,20 +60,45 @@ function MapEvents({ setLat, setLng, setZoom }) {
 }
 
 // Component to fly to user location on load
+// Component to fly to user location on load
 function LocationMarker({ setLoading }) {
   const map = useMap();
 
   useEffect(() => {
-    map.locate({ setView: true, maxZoom: 16 });
-    map.on('locationfound', (e) => {
+    // Initial locate
+    map.locate({ setView: true, maxZoom: 18, watch: true, enableHighAccuracy: true });
+
+    const onLocationFound = (e) => {
       setLoading(false);
+      // We don't want to re-center constantly if user is panning, 
+      // but initial load should center.
+      // Leaflet's 'setView: true' handles the initial centering.
+      // We can add a marker.
+
+      // Remove existing location markers to avoid duplicates if tracking updates
+      map.eachLayer((layer) => {
+        if (layer._popup && layer._popup.getContent() === "You are here") {
+          map.removeLayer(layer);
+        }
+      });
+
+      // Add circle and marker
+      const radius = e.accuracy / 2;
       L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
-      L.circle(e.latlng, e.accuracy).addTo(map);
+      L.circle(e.latlng, radius).addTo(map);
+    };
+
+    map.on('locationfound', onLocationFound);
+
+    map.on('locationerror', (e) => {
+      console.warn("Location access denied or failed", e);
+      setLoading(false); // Stop loading even if failed
     });
-    map.on('locationerror', () => {
-      setLoading(false);
-      // alert("Location access denied."); // Silent fail prefer
-    });
+
+    return () => {
+      map.stopLocate();
+      map.off('locationfound', onLocationFound);
+    };
   }, [map]);
 
   return null;
@@ -154,6 +179,17 @@ export default function App() {
           >
             <Layers className="w-4 h-4" />
             <span>{isSatellite ? 'Switch to Street Map' : 'Switch to Satellite'}</span>
+          </button>
+          <button
+            onClick={() => {
+              const map = document.querySelector('.leaflet-container')._leaflet_map;
+              setLoading(true);
+              map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: true });
+            }}
+            className="w-full py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-all duration-300 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/50 mt-2"
+          >
+            <Compass className="w-4 h-4" />
+            <span>Locate Me</span>
           </button>
         </div>
       </div>
