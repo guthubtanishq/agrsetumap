@@ -38,6 +38,7 @@ export default function App() {
       style: 'mapbox://styles/mapbox/satellite-streets-v12',
       center: [lng, lat],
       zoom: zoom,
+      maxZoom: 22,
       projection: 'globe' // Display the map as a 3D globe
     });
 
@@ -97,6 +98,9 @@ export default function App() {
         } else if (feature.geometry.type === 'LineString') {
           const distance = turf.length(feature);
           setMeasurement(`Distance: ${distance.toFixed(2)} km`);
+        } else if (feature.geometry.type === 'Point') {
+          const coords = feature.geometry.coordinates;
+          setMeasurement(`Location: ${coords[1].toFixed(5)}, ${coords[0].toFixed(5)}`);
         }
       } else {
         setMeasurement(null);
@@ -157,7 +161,8 @@ export default function App() {
     <div className="relative w-full h-screen bg-black text-white overflow-hidden">
 
       {/* Map Container */}
-      <div ref={mapContainer} className="absolute inset-0 z-0" />
+      {/* Map Container */}
+      <div ref={mapContainer} className="absolute inset-0 z-0 w-full h-full" style={{ width: '100vw', height: '100vh' }} />
 
       {/* Measurement Display */}
       {measurement && (
@@ -221,6 +226,15 @@ export default function App() {
           >
             <Compass className="w-4 h-4" />
             <span>Reset North</span>
+          </button>
+          <button
+            onClick={() => {
+              draw.current.deleteAll();
+              setMeasurement(null);
+            }}
+            className="w-full py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-all duration-300 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 mt-2"
+          >
+            <span>Clear Markers</span>
           </button>
         </div>
       </div>
