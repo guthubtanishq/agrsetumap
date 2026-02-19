@@ -2,10 +2,10 @@ import { useRef, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { GeoSearchControl, OpenStreetMapProvider } from 'leaflet-geosearch';
-
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-geosearch/dist/geosearch.css';
-import { Layers, Loader2 } from 'lucide-react';
+import { Layers, Compass, Loader2 } from 'lucide-react';
+import React from 'react';
 
 // Fix Leaflet's default icon path issues
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -19,6 +19,43 @@ let DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+// Error Boundary
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center w-screen h-screen bg-zinc-900 text-white p-4">
+          <div className="max-w-md bg-red-900/20 border border-red-500/50 p-6 rounded-lg text-center">
+            <h1 className="text-2xl font-bold text-red-500 mb-4">Application Error</h1>
+            <p className="text-gray-300 font-mono text-sm break-words">{this.state.error?.toString()}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 px-4 py-2 bg-red-600 hover:bg-red-700 rounded text-white transition-colors"
+            >
+              Reload Application
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Search Component
 function SearchField() {
@@ -46,7 +83,7 @@ function SearchField() {
   return null;
 }
 
-// Component to handle map movement events
+// Map Events
 function MapEvents({ setLat, setLng, setZoom }) {
   const map = useMapEvents({
     move: () => {
@@ -59,40 +96,29 @@ function MapEvents({ setLat, setLng, setZoom }) {
   return null;
 }
 
-// Component to fly to user location on load
-// Component to fly to user location on load
+// Location Marker
 function LocationMarker({ setLoading }) {
   const map = useMap();
 
   useEffect(() => {
-    // Initial locate
     map.locate({ setView: true, maxZoom: 18, watch: true, enableHighAccuracy: true });
 
     const onLocationFound = (e) => {
       setLoading(false);
-      // We don't want to re-center constantly if user is panning, 
-      // but initial load should center.
-      // Leaflet's 'setView: true' handles the initial centering.
-      // We can add a marker.
-
-      // Remove existing location markers to avoid duplicates if tracking updates
       map.eachLayer((layer) => {
         if (layer._popup && layer._popup.getContent() === "You are here") {
           map.removeLayer(layer);
         }
       });
-
-      // Add circle and marker
       const radius = e.accuracy / 2;
       L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
       L.circle(e.latlng, radius).addTo(map);
     };
 
     map.on('locationfound', onLocationFound);
-
     map.on('locationerror', (e) => {
       console.warn("Location access denied or failed", e);
-      setLoading(false); // Stop loading even if failed
+      setLoading(false);
     });
 
     return () => {
@@ -104,30 +130,38 @@ function LocationMarker({ setLoading }) {
   return null;
 }
 
-export default function App() {
+function AppContent() {
   const [lat, setLat] = useState(0);
   const [lng, setLng] = useState(0);
   const [zoom, setZoom] = useState(2);
   const [isSatellite, setIsSatellite] = useState(true);
   const [loading, setLoading] = useState(true);
 
-  // Tile Layers
+  // Use a ref to access the map instance safely
+  const mapRef = useRef(null);
+
   const satelliteUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
   const streetUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
   const attribution = isSatellite
     ? 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
     : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
-  return (
-    <div className="relative w-full h-screen bg-black text-white overflow-hidden">
+  const handleLocateMe = () => {
+    if (mapRef.current) {
+      setLoading(true);
+      mapRef.current.locate({ setView: true, maxZoom: 18, enableHighAccuracy: true });
+    }
+  };
 
-      {/* Map Container */}
+  return (
+    <div className="relative w-full h-full bg-black text-white overflow-hidden">
       <MapContainer
         center={[0, 0]}
         zoom={2}
-        style={{ width: '100vw', height: '100vh', zIndex: 1 }}
+        style={{ width: '100%', height: '100%', zIndex: 1 }}
         zoomControl={false}
         attributionControl={false}
+        ref={mapRef}
       >
         <TileLayer
           url={isSatellite ? satelliteUrl : streetUrl}
@@ -139,7 +173,6 @@ export default function App() {
         <LocationMarker setLoading={setLoading} />
       </MapContainer>
 
-      {/* Loading Overlay */}
       {loading && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-none">
           <div className="flex flex-col items-center">
@@ -149,7 +182,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Control Panel */}
       <div className="absolute bottom-8 left-8 z-[1000] p-4 bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl w-80">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
@@ -181,11 +213,7 @@ export default function App() {
             <span>{isSatellite ? 'Switch to Street Map' : 'Switch to Satellite'}</span>
           </button>
           <button
-            onClick={() => {
-              const map = document.querySelector('.leaflet-container')._leaflet_map;
-              setLoading(true);
-              map.locate({ setView: true, maxZoom: 18, enableHighAccuracy: true });
-            }}
+            onClick={handleLocateMe}
             className="w-full py-2 px-4 rounded-lg flex items-center justify-center space-x-2 transition-all duration-300 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/50 mt-2"
           >
             <Compass className="w-4 h-4" />
@@ -194,10 +222,17 @@ export default function App() {
         </div>
       </div>
 
-      {/* Decorative Elements */}
       <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-[500]"></div>
       <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-[500]"></div>
 
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
   );
 }
